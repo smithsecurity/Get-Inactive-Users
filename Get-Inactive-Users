@@ -1,0 +1,10 @@
+$CorpADRWServer = ((([system.directoryservices.activedirectory.Forest]::GetCurrentForest()).domains | ?{$_.name -like "corp.belkinc.com"}).domaincontrollers | select name | ?{$_.name -like "*RWDC*"} | Get-Random).name # connects to DC
+$CorpADUsers = Get-ADUser -filter * -Properties * -SearchBase "DC=<DOMAIN>,DC=com" -Server $CorpADRWServer # gets all users
+$CorpADUsers = $CorpADUsers | ?{$_.EmailAddress -ne $null} # where email address is not null
+$CorpADUsers = $CorpADUsers | ?{$_.PasswordLastSet -ne $null} # where password last set is not null
+$CorpADUsers = $CorpADUsers | ?{$_.employeeType -ne "Service Account"} # where they aren't a service account
+$CorpADUsers = $CorpADUsers | ?{$_.Enabled -eq $True} # where they are enabled
+$CorpADUsers = $CorpADUsers | ?{$_.employeeType -notlike "Group Mailboxes*"} # removes group mailboxes
+$CorpADUsers = $CorpADUsers | ?{$_.PasswordLastSet -lt ((Get-Date).AddDays(-91))} # where password last set is overb 90 days ago
+$CorpADUsers | select SAMAccountName,emailAddress,PasswordLastSet | sort PasswordLastSet -Descending # shows SAMAccountName, email, and password last set
+# Note: additional filters may be needed to remove false-positives
